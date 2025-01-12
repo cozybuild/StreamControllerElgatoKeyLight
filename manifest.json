@@ -1,7 +1,7 @@
 {
   "version": "0.1.2",
   "thumbnail": "store/Thumbnail.png",
-  "id": "com.memclash.elgatokeylight",
+  "id": "com_memclash_elgatokeylight",
   "name": "Elgato Key Light Control",
   "author": "Cozybuild",
   "github": "https://github.com/cozybuild/StreamControllerElgatoKeyLight",
