@@ -59,8 +59,12 @@ class Dial(Core):
 
     def save_settings(self):
         local_settings = self.get_settings()
-        local_settings["step_size"] = int(self.step_size.get_value())
-        local_settings["current_dial_selection"] = int(self.dial_selection.get_selected())
+
+        self.selected_step_size = int(self.step_size.get_value())
+        self.current_dial_selection = int(self.dial_selection.get_selected())
+
+        local_settings["step_size"] = self.selected_step_size
+        local_settings["current_dial_selection"] = self.current_dial_selection
         self.set_settings(local_settings)
 
     def event_callback(self, event: InputEvent, data: dict) -> None:
