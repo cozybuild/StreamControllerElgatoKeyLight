@@ -57,7 +57,7 @@ class SetButton(Core):
         parent_entries = super().get_config_rows()
 
         self.live_update = Adw.SwitchRow.new()
-        self.live_update.set_title(self.plugin_base.locale_manager.get("actions.live_update.title"))
+        self.live_update.set_title(self.lm.get("actions.live_update.title"))
         self.live_update.set_active(self.live_update_active)
         self.live_update.connect("notify::active", self.on_live_update_changed)
 

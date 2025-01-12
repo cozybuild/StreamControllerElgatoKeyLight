@@ -15,6 +15,7 @@ from gi.repository import Gtk, Adw
 class Core(ActionBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.lm = self.plugin_base.locale_manager
 
         self.supported_lights = {
             "ElgatoKeyLight": {
