@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
-  "thumbnail": "",
+  "thumbnail": "store/Thumbnail.png",
   "id": "com.memclash.elgatokeylight",
   "name": "Elgato Key Light Control",
   "author": "Cozybuild",
