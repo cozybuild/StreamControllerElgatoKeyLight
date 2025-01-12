@@ -86,7 +86,6 @@ class Core(ActionBase):
 
         self.plugin_base.set_settings(settings)
         self.update_light()
-        self.update_icon()
 
     def load_default_config(self):
         settings = self.plugin_base.get_settings()
@@ -137,8 +136,7 @@ class Core(ActionBase):
         }
 
         try:
-            r = requests.put(url, json=data, timeout=10)
-            print(r.text)
+            requests.put(url, json=data, timeout=10)
             self.update_icon()
         except ValueError:
             print("Failed to set lights ", ValueError)

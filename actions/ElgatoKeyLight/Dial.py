@@ -22,6 +22,7 @@ class Dial(Core):
 
     def on_ready(self) -> None:
         self.load_local_saved_config()
+        self.update_icon()
 
     def get_config_rows(self) -> list:
         parent_entries = super().get_config_rows()
@@ -52,8 +53,6 @@ class Dial(Core):
     def load_local_saved_config(self):
         local_settings = self.get_settings()
 
-        print(local_settings)
-
         self.selected_step_size = local_settings.get("step_size") or 1
         self.current_dial_selection = local_settings.get("current_dial_selection")
 
@@ -62,7 +61,6 @@ class Dial(Core):
         local_settings = self.get_settings()
         local_settings["step_size"] = int(self.step_size.get_value())
         local_settings["current_dial_selection"] = int(self.dial_selection.get_selected())
-        print(local_settings)
         self.set_settings(local_settings)
 
     def event_callback(self, event: InputEvent, data: dict) -> None:
@@ -76,13 +74,11 @@ class Dial(Core):
             if str(event) == str(Input.Dial.Events.TURN_CCW):
                 new_value = -self.selected_step_size
 
-            is_brightness = self.dial_selection.get_selected() == DialProperty.Brightness.value
+            is_brightness = self.current_dial_selection == DialProperty.Brightness.value
             if is_brightness:
                 self.modify_brightness(new_value)
             else:
                 self.modify_temperature(new_value)
-
-            self.save_settings()
 
     def on_key_down(self) -> None:
         self.toggle_light()

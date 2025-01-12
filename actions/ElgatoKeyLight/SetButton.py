@@ -18,6 +18,8 @@ class SetButton(Core):
         self._custom_temperature = local_settings.get("custom_temperature") or self.supported_lights["ElgatoKeyLight"]["min_temperature"]
         self._live_update = local_settings.get("live_update") or False
 
+        self.update_icon()
+
     @property
     def custom_brightness(self):
         return self._custom_brightness
@@ -28,7 +30,6 @@ class SetButton(Core):
         local_settings = self.get_settings()
         local_settings["custom_brightness"] = int(value)
         self.set_settings(local_settings)
-        print(local_settings)
 
     @property
     def custom_temperature(self):
@@ -40,7 +41,6 @@ class SetButton(Core):
         local_settings = self.get_settings()
         local_settings["custom_temperature"] = int(value)
         self.set_settings(local_settings)
-        print(local_settings)
 
     @property
     def live_update_active(self):
@@ -52,7 +52,6 @@ class SetButton(Core):
         local_settings = self.get_settings()
         local_settings["live_update"] = int(value)
         self.set_settings(local_settings)
-        print(local_settings)
 
     def get_config_rows(self) -> list:
         parent_entries = super().get_config_rows()
