@@ -54,8 +54,7 @@ class Dial(Core):
         local_settings = self.get_settings()
 
         self.selected_step_size = local_settings.get("step_size") or 1
-        self.current_dial_selection = local_settings.get("current_dial_selection")
-
+        self.current_dial_selection = local_settings.get("current_dial_selection") or 0
 
     def save_settings(self):
         local_settings = self.get_settings()
