@@ -2,7 +2,8 @@
 
 # Elgato Key Light Control
 
-Control your Elgato Key Light with StreamDeck. Supports brightness and temperature control and dial control.
+Control your Elgato Key Light with your Stream Deck on Linux powered by [StreamController](https://github.com/StreamController/StreamController).
+This plugin supports brightness and temperature control of your Elgato Key Light. Stream Deck+ Dial controllers are also supported.
 
 ## Supported lights
 
