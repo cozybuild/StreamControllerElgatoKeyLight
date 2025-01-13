@@ -4,6 +4,7 @@ from src.backend.PluginManager.ActionBase import ActionBase
 import os
 import gi
 import threading
+import time
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -26,6 +27,29 @@ class Core(ActionBase):
                 "max_temperature": 344,
             }
         }
+
+        self._is_connected = False
+        self._connection_error = ""
+        self._last_request_number = 0
+        self._running_requests = 0
+
+    @property
+    def running_requests(self):
+        return self._running_requests
+
+    @running_requests.setter
+    def running_requests(self, value):
+        self._running_requests = value
+        self.set_banner_connection_info()
+
+    @property
+    def is_connected(self):
+        return self._is_connected
+
+    @is_connected.setter
+    def is_connected(self, value):
+        self._is_connected = value
+        self.set_banner_connection_info()
 
     @property
     def current_brightness(self):
@@ -62,10 +86,22 @@ class Core(ActionBase):
 
     def get_config_rows(self) -> list:
         self.ip_entry = Adw.EntryRow(title=self.plugin_base.locale_manager.get("actions.ip_entry.title"), input_purpose=Gtk.InputPurpose.FREE_FORM)
+        self.ip_entry.connect("notify::text", self.on_ip_address_changed)
+
+        self.connection_banner = Adw.Banner()
+        self.connection_banner.set_revealed(True)
 
         self.load_default_config()
 
-        return [self.ip_entry]
+        return [self.ip_entry, self.connection_banner]
+
+    def set_banner_connection_info(self) -> None:
+        if self.running_requests > 0:
+            self.connection_banner.set_title(self.plugin_base.locale_manager.get("actions.connection_banner.loading"))
+        elif self.is_connected:
+            self.connection_banner.set_title(self.plugin_base.locale_manager.get("actions.connection_banner.connected"))
+        else:
+            self.connection_banner.set_title(self.plugin_base.locale_manager.get("actions.connection_banner.not_connected"))
 
     def modify_brightness(self, amount: int):
         settings = self.plugin_base.get_settings()
@@ -136,8 +172,25 @@ class Core(ActionBase):
             ]
         }
 
+        request_number = self._last_request_number + 1
+        self.running_requests += 1
+        self._last_request_number = request_number
+
         try:
             requests.put(url, json=data, timeout=10)
+
+            self.running_requests -= 1
+            if request_number != self._last_request_number:
+                return
+
             self.update_icon()
-        except ValueError:
-            print("Failed to set lights ", ValueError)
+            self.is_connected = True
+            self._last_request_number = time.time()
+        except BaseException as e:
+            self.running_requests -= 1
+
+            if request_number != self._last_request_number:
+                return
+
+            self._connection_error = str(e)
+            self.is_connected = False

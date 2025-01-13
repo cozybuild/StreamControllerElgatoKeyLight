@@ -4,5 +4,8 @@
   "actions.step_size.title": "Step Size",
   "actions.dial_selection.title": "Dial Selection",
   "actions.brightness_entry.title": "Brightness",
-  "actions.temperature_entry.title": "Temperature"
+  "actions.temperature_entry.title": "Temperature",
+  "actions.connection_banner.loading": "Loading...",
+  "actions.connection_banner.connected": "Light is connected successfully",
+  "actions.connection_banner.not_connected": "No light found. Please check the IP address and try again"
 }
