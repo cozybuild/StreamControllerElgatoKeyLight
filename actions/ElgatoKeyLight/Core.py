@@ -28,6 +28,8 @@ class Core(ActionBase):
             }
         }
 
+        self.banner_is_visible = False
+
         self._is_connected = False
         self._connection_error = ""
         self._last_request_number = 0
@@ -91,11 +93,15 @@ class Core(ActionBase):
         self.connection_banner = Adw.Banner()
         self.connection_banner.set_revealed(True)
 
+        self.banner_is_visible = True
         self.load_default_config()
 
         return [self.ip_entry, self.connection_banner]
 
     def set_banner_connection_info(self) -> None:
+        if not self.banner_is_visible:
+            return
+
         if self.running_requests > 0:
             self.connection_banner.set_title(self.plugin_base.locale_manager.get("actions.connection_banner.loading"))
         elif self.is_connected:
