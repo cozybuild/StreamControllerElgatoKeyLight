@@ -18,6 +18,8 @@ class Core(ActionBase):
         super().__init__(*args, **kwargs)
         self.lm = self.plugin_base.locale_manager
 
+        self.plugin_base.backend.on_light_state_changed.subscribe(self.update_icon)
+
         self.supported_lights = {
             "ElgatoKeyLight": {
                 "name": "Elgato Key Light",
@@ -65,7 +67,9 @@ class Core(ActionBase):
         _current_brightness = max(self.supported_lights["ElgatoKeyLight"]["min_brightness"], min(value, self.supported_lights["ElgatoKeyLight"]["max_brightness"]))
 
         settings["brightness"] = int(_current_brightness)
+
         self.plugin_base.set_settings(settings)
+        self.plugin_base.backend.on_brightness_changed.emit()
         threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
 
     @property
@@ -80,7 +84,9 @@ class Core(ActionBase):
         _current_temperature = max(self.supported_lights["ElgatoKeyLight"]["min_temperature"], min(value, self.supported_lights["ElgatoKeyLight"]["max_temperature"]))
 
         settings["temperature"] = int(_current_temperature)
+
         self.plugin_base.set_settings(settings)
+        self.plugin_base.backend.on_temperature_changed.emit()
         threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
 
     def on_ready(self) -> None:
@@ -128,6 +134,7 @@ class Core(ActionBase):
             settings["light_active"] = 0
 
         self.plugin_base.set_settings(settings)
+        self.plugin_base.backend.on_light_state_changed.emit()
         self.update_light()
 
     def load_default_config(self):

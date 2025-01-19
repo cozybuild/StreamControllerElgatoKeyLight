@@ -9,9 +9,15 @@ from .actions.ElgatoKeyLight.SetButton import SetButton
 from .actions.ElgatoKeyLight.ToggleButton import ToggleButton
 from .actions.ElgatoKeyLight.Dial import Dial
 
+import os
+
 class PluginTemplate(PluginBase):
     def __init__(self):
         super().__init__()
+
+        ## Launch backend
+        backend_path = os.path.join(self.PATH, "backend", "backend.py")
+        self.launch_backend(backend_path=backend_path, open_in_terminal=False)
 
         ## Register actions
         self.set_light_action_holder = ActionHolder(

@@ -21,6 +21,7 @@ class ToggleProperty(Enum):
 class Dial(Core):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.selected_step_size = 1
         self.current_dial_selection = 0
         self.current_toggle_selection = 0
@@ -30,6 +31,9 @@ class Dial(Core):
         self.load_local_saved_config()
         self.update_icon()
         self.update_labels()
+
+        self.plugin_base.backend.on_brightness_changed.subscribe(self.update_labels)
+        self.plugin_base.backend.on_temperature_changed.subscribe(self.update_labels)
 
 
     def get_config_rows(self) -> list:
