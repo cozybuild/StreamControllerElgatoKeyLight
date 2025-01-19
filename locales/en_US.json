@@ -1,6 +1,6 @@
 {
   "actions.live_update.title": "Live Update",
-  "actions.ip_entry.title": "IP Address",
+  "actions.add_ip_entry.title": "Add new IP Address",
   "actions.step_size.title": "Step Size",
   "actions.dial_selection.title": "Dial Selection",
   "actions.brightness_entry.title": "Brightness",
@@ -13,5 +13,6 @@
   "actions.current_temperature.title": "Temperature",
   "actions.toggle_selection.title": "On press",
   "actions.toggle_selection.light_on_off": "Toggle Light",
-  "actions.toggle_selection.brightness_temperature": "Change Brightness/Temperature"
+  "actions.toggle_selection.brightness_temperature": "Change Brightness/Temperature",
+  "actions.device_list.title": "Existing devices"
 }

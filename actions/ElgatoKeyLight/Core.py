@@ -8,6 +8,7 @@ import time
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+from ipaddress import ip_address
 
 import requests
 from gi.repository import Gtk, Adw
@@ -19,6 +20,7 @@ class Core(ActionBase):
         self.lm = self.plugin_base.locale_manager
 
         self.plugin_base.backend.on_light_state_changed.subscribe(self.update_icon)
+        self.plugin_base.backend.on_device_added.subscribe(self.update_device_list)
 
         self.supported_lights = {
             "ElgatoKeyLight": {
@@ -89,20 +91,42 @@ class Core(ActionBase):
         self.plugin_base.backend.on_temperature_changed.emit()
         threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
 
+
     def on_ready(self) -> None:
+        self.load_default_config()
         self.update_icon()
 
+
+    def update_device_list(self):
+        if not hasattr(self, "registered_devices"):
+            return
+
+        print(self.registered_devices)
+        self.registered_devices.splice(0, self.registered_devices.get_n_items())
+        for device in self.plugin_base.backend.get_devices():
+            self.registered_devices.append(str(device))
+
+
     def get_config_rows(self) -> list:
-        self.ip_entry = Adw.EntryRow(title=self.plugin_base.locale_manager.get("actions.ip_entry.title"), input_purpose=Gtk.InputPurpose.FREE_FORM)
-        self.ip_entry.connect("notify::text", self.on_ip_address_changed)
+        self.add_new_ip_entry = Adw.EntryRow(title=self.plugin_base.locale_manager.get("actions.add_ip_entry.title"), input_purpose=Gtk.InputPurpose.FREE_FORM, show_apply_button=True)
+        self.add_new_ip_entry.connect("apply", self.on_ip_address_added)
+
+        # List of existing devices
+        self.registered_devices = Gtk.StringList()
+        for device in self.plugin_base.backend.get_devices():
+            self.registered_devices.append(str(device))
+
+        self.device_list = Adw.ComboRow(title=self.plugin_base.locale_manager.get("actions.device_list.title"), model=self.registered_devices)
+        self.device_list.connect("notify::selected", self.set_ip_address)
 
         self.connection_banner = Adw.Banner()
         self.connection_banner.set_revealed(True)
 
         self.banner_is_visible = True
+
         self.load_default_config()
 
-        return [self.ip_entry, self.connection_banner]
+        return [self.add_new_ip_entry, self.device_list, self.connection_banner]
 
     def set_banner_connection_info(self) -> None:
         if not self.banner_is_visible:
@@ -138,17 +162,56 @@ class Core(ActionBase):
         self.update_light()
 
     def load_default_config(self):
-        settings = self.plugin_base.get_settings()
-        ip_address = settings.get("ip_address")
+        # Fallback for old global settings
+        global_settings = self.plugin_base.get_settings()
+        migrate_global_address_to_local_address = global_settings.get("ip_address")
 
-        if ip_address:
-            self.ip_entry.set_text(ip_address)
+        settings = self.get_settings()
 
-    def on_ip_address_changed(self, entry: Adw.EntryRow, text):
-        settings = self.plugin_base.get_settings()
-        settings["ip_address"] = entry.get_text()
-        self.plugin_base.set_settings(settings)
+        if migrate_global_address_to_local_address:
+            settings["ip_address"] = migrate_global_address_to_local_address
+            del global_settings["ip_address"]
+            self.plugin_base.set_settings(global_settings)
+            print("Migrating global settings")
+            self.set_settings(settings)
+
+        saved_ip_address = settings.get("ip_address")
+
+        if saved_ip_address:
+            print("Saved ip address in config ", saved_ip_address)
+
+            self.plugin_base.backend.register_new_device(saved_ip_address, saved_ip_address)
+            self.preselect_device_by_ip()
+            self.ip_address = saved_ip_address
+
+    def preselect_device_by_ip(self):
+        base_devices = self.plugin_base.backend.get_devices()
+        for index, key in enumerate(base_devices):
+            if base_devices[key].ip_address == ip_address:
+                self.device_list.set_selected(index)
+                break
+
+    def on_ip_address_added(self, entry: Adw.EntryRow):
+        new_ip_address = entry.get_text()
+
+        self.plugin_base.backend.register_new_device(new_ip_address, new_ip_address)
+        self.device_list.set_selected(self.registered_devices.get_n_items() - 1)
+        self.set_ip_address(self.device_list)
+
+
+    def set_ip_address(self, entry: Adw.EntryRow, *args):
+        settings = self.get_settings()
+
+        ip_by_index = list(self.plugin_base.backend.get_devices().values())[entry.get_selected()].ip_address
+
+        print("Save new selected ip address ", ip_by_index)
+        settings["ip_address"] = ip_by_index
+
+        self.ip_address = ip_by_index
+
+        self.set_settings(settings)
         threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
+
 
     def update_icon(self):
         settings = self.plugin_base.get_settings()
@@ -170,7 +233,8 @@ class Core(ActionBase):
 
 
     def update_light(self):
-        settings = self.plugin_base.get_settings()
+        settings = self.get_settings()
+        global_settings = self.plugin_base.get_settings()
         ip_address = settings.get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
 
@@ -178,7 +242,7 @@ class Core(ActionBase):
         "numberOfLights": 1,
         "lights": [
                 {
-                    "on": settings.get("light_active"),
+                    "on": global_settings.get("light_active"),
                     "brightness": self.current_brightness,
                     "temperature": self.current_temperature
                 }
