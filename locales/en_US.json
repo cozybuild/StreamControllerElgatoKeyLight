@@ -1,6 +1,7 @@
 {
   "actions.live_update.title": "Live Update",
   "actions.add_ip_entry.title": "Add new IP Address",
+  "actions.add_light_button.title": "Add new IP Address",
   "actions.step_size.title": "Step Size",
   "actions.dial_selection.title": "Dial Selection",
   "actions.brightness_entry.title": "Brightness",
