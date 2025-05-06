@@ -1,6 +1,5 @@
 # Import StreamController modules
 from gi.repository import Gtk, Adw
-import requests
 from ipaddress import ip_address
 from src.backend.PluginManager.ActionBase import ActionBase
 
@@ -9,6 +8,7 @@ import gi
 import threading
 import time
 import json
+import requests
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -58,6 +58,18 @@ class Core(ActionBase):
     def is_connected(self, value):
         self._is_connected = value
         self.set_banner_connection_info()
+
+    @property
+    def current_status(self):
+        return self.get_light_data()["on"] or 0
+
+    @current_status.setter
+    def current_status(self, value):
+        self.plugin_base.backend.on_light_state_changed.emit()
+        threading.Thread(target=self.update_light,
+                         args=(int(value),None,None,),
+                         daemon=True,
+                         name="update_light").start()
 
     @property
     def current_brightness(self):
@@ -154,13 +166,9 @@ class Core(ActionBase):
         self.current_temperature = new_temperature
 
     def toggle_light(self):
-        
         status = self.get_light_data()["on"]
-
         status = 1 - status
-
-        self.plugin_base.backend.on_light_state_changed.emit()
-        self.update_light(status,None,None)
+        self.current_status = status
 
     def load_default_config(self):
         # Fallback for old global settings
@@ -239,21 +247,20 @@ class Core(ActionBase):
             return "Failed to get lights"
 
     def update_light(self,_is_light_active,_brightness,_temperature):
-        current_settings = self.get_light_data()
 
         ip_address = self.get_settings().get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
 
         if _is_light_active is None:
-            _is_light_active = current_settings["on"]
+            _is_light_active = self.current_status
 
         data = {
             "numberOfLights": 1,
             "lights": [
                 {
                     "on": _is_light_active, 
-                    "brightness": _brightness or current_settings["brightness"],
-                    "temperature": _temperature or current_settings["temperature"]
+                    "brightness": _brightness or self.current_brightness,
+                    "temperature": _temperature or self.current_temperature
                 }
             ]
         }
