@@ -252,9 +252,9 @@ class Core(ActionBase):
         except:
             return "Failed to get lights"
 
-    def update_light(self):
-        settings = self.get_settings()
-        global_settings = self.plugin_base.get_settings()
+    def update_light(self,_is_light_active,_brightness,_temperature):
+        current_settings = self.get_light_data()
+
         ip_address = settings.get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
 
@@ -262,9 +262,9 @@ class Core(ActionBase):
             "numberOfLights": 1,
             "lights": [
                 {
-                    "on": global_settings.get("light_active"),
-                    "brightness": self.current_brightness,
-                    "temperature": self.current_temperature
+                    "on": _is_light_active or current_settings["on"] 
+                    "brightness": _brightness or current_settings:["brightness"],
+                    "temperature": _temperature or current_settings:["temperature"]
                 }
             ]
         }
