@@ -61,22 +61,17 @@ class Core(ActionBase):
 
     @property
     def current_brightness(self):
-        settings = self.plugin_base.get_settings()
-            
-        return settings.get("brightness") or self.supported_lights["ElgatoKeyLight"]["min_brightness"]
+        return self.get_light_data()["brightness"] or self.supported_lights["ElgatoKeyLight"]["min_brightness"]
 
     @current_brightness.setter
     def current_brightness(self, value):
-        settings = self.plugin_base.get_settings()
-
         _current_brightness = max(self.supported_lights["ElgatoKeyLight"]["min_brightness"], min(
             value, self.supported_lights["ElgatoKeyLight"]["max_brightness"]))
 
-        settings["brightness"] = int(_current_brightness)
-
-        self.plugin_base.set_settings(settings)
         self.plugin_base.backend.on_brightness_changed.emit()
-        threading.Thread(target=self.update_light, daemon=True,
+        threading.Thread(target=self.update_light, 
+                         args=(None,int(_current_brightness),None,),
+                         daemon=True,
                          name="update_light").start()
 
     @property
@@ -155,8 +150,7 @@ class Core(ActionBase):
                 "actions.connection_banner.not_connected"))
 
     def modify_brightness(self, amount: int):
-        settings = self.plugin_base.get_settings()
-        new_brightness = int(settings.get("brightness") or 0) + amount
+        new_brightness = int(self.get_light_data()["brightness"] or 0) + amount
         self.current_brightness = new_brightness
 
     def modify_temperature(self, amount: int):
@@ -165,16 +159,13 @@ class Core(ActionBase):
         self.current_temperature = new_temperature
 
     def toggle_light(self):
-        settings = self.plugin_base.get_settings()
+        
+        status = self.get_light_data()["on"]
 
-        if settings.get("light_active") == 0:
-            settings["light_active"] = 1
-        else:
-            settings["light_active"] = 0
+        status = 1 - status
 
-        self.plugin_base.set_settings(settings)
         self.plugin_base.backend.on_light_state_changed.emit()
-        self.update_light()
+        self.update_light(status,None,None)
 
     def load_default_config(self):
         # Fallback for old global settings
@@ -244,7 +235,7 @@ class Core(ActionBase):
     # TODO: Fetch data from light (singleton)
 
     def get_light_data(self):
-        ip_address = settings.get("ip_address")
+        ip_address = self.get_settings().get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
@@ -255,14 +246,17 @@ class Core(ActionBase):
     def update_light(self,_is_light_active,_brightness,_temperature):
         current_settings = self.get_light_data()
 
-        ip_address = settings.get("ip_address")
+        ip_address = self.get_settings().get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
+
+        if _is_light_active is None:
+            _is_light_active = current_settings["on"]
 
         data = {
             "numberOfLights": 1,
             "lights": [
                 {
-                    "on": _is_light_active or current_settings["on"], 
+                    "on": _is_light_active, 
                     "brightness": _brightness or current_settings["brightness"],
                     "temperature": _temperature or current_settings["temperature"]
                 }
