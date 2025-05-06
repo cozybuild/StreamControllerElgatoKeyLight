@@ -248,7 +248,7 @@ class Core(ActionBase):
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
-            return json.loads(r.text["lights"][0]) 
+            return json.loads(r.text)["lights"][0] 
         except:
             return "Failed to get lights"
 
@@ -262,9 +262,9 @@ class Core(ActionBase):
             "numberOfLights": 1,
             "lights": [
                 {
-                    "on": _is_light_active or current_settings["on"] 
-                    "brightness": _brightness or current_settings:["brightness"],
-                    "temperature": _temperature or current_settings:["temperature"]
+                    "on": _is_light_active or current_settings["on"], 
+                    "brightness": _brightness or current_settings["brightness"],
+                    "temperature": _temperature or current_settings["temperature"]
                 }
             ]
         }
