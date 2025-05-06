@@ -248,7 +248,7 @@ class Core(ActionBase):
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
-            return json.loads(r.text()[0]) 
+            return json.loads(r.text["lights"][0]) 
         except:
             return "Failed to get lights"
 
