@@ -76,21 +76,17 @@ class Core(ActionBase):
 
     @property
     def current_temperature(self):
-        settings = self.plugin_base.get_settings()
-        return settings.get("temperature") or self.supported_lights["ElgatoKeyLight"]["min_temperature"]
+        return self.get_light_data()["temperature"] or self.supported_lights["ElgatoKeyLight"]["min_temperature"]
 
     @current_temperature.setter
     def current_temperature(self, value):
-        settings = self.plugin_base.get_settings()
-
         _current_temperature = max(self.supported_lights["ElgatoKeyLight"]["min_temperature"], min(
             value, self.supported_lights["ElgatoKeyLight"]["max_temperature"]))
 
-        settings["temperature"] = int(_current_temperature)
-
-        self.plugin_base.set_settings(settings)
         self.plugin_base.backend.on_temperature_changed.emit()
-        threading.Thread(target=self.update_light, daemon=True,
+        threading.Thread(target=self.update_light,
+                         args=(None,None,int(_current_temperature),),
+                         daemon=True,
                          name="update_light").start()
 
     def on_ready(self) -> None:
@@ -154,8 +150,7 @@ class Core(ActionBase):
         self.current_brightness = new_brightness
 
     def modify_temperature(self, amount: int):
-        settings = self.plugin_base.get_settings()
-        new_temperature = int(settings.get("temperature") or 0) + amount
+        new_temperature = int(self.get_light_data()["temperature"] or 0) + amount
         self.current_temperature = new_temperature
 
     def toggle_light(self):
