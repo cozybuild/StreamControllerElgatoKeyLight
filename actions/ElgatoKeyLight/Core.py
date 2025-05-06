@@ -8,6 +8,7 @@ import os
 import gi
 import threading
 import time
+import json
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -61,6 +62,7 @@ class Core(ActionBase):
     @property
     def current_brightness(self):
         settings = self.plugin_base.get_settings()
+            
         return settings.get("brightness") or self.supported_lights["ElgatoKeyLight"]["min_brightness"]
 
     @current_brightness.setter
@@ -242,10 +244,11 @@ class Core(ActionBase):
     # TODO: Fetch data from light (singleton)
 
     def get_light_data(self):
-        url = ""
+        ip_address = settings.get("ip_address")
+        url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
-            return r.text
+            return json.loads(r.text()[0]) 
         except:
             return "Failed to get lights"
 
