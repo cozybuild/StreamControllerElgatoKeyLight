@@ -34,12 +34,85 @@ class Core(ActionBase):
             }
         }
 
+        self.json_data = {
+            "numberOfLights": 1,
+            "lights": [
+                {
+                    "on": 0,
+                    "brightness": 1,
+                    "temperature": 143
+                }
+            ]
+        }
+
+        self._get_from_api()
+
         self.banner_is_visible = False
 
         self._is_connected = False
         self._connection_error = ""
         self._last_request_number = 0
         self._running_requests = 0
+        
+        self._lock = threading.Lock()
+        self._send_timer = None
+        self._async_time = 0.15 #150 Ms
+    def set_property(self, key, value):
+        #with self._lock:
+        
+        match key:
+            case "brightness":
+                self.plugin_base.backend.on_brightness_changed.emit()
+                self.json_data["lights"][0][key] = int(self.json_data["lights"][0][key] or 0) + value
+
+            case "temperature":
+                self.plugin_base.backend.on_temperature_changed.emit()
+                self.json_data["lights"][0][key] = int(self.json_data["lights"][0][key] or 0) + value
+
+            case "on":
+                self.json_data["lights"][0][key] = 1 - int(self.json_data["lights"][0][key])
+            case _:
+                print("No actions passed")
+
+        self._async_send()
+    
+    def _async_send(self):
+        #if self._send_timer:
+        #    print("We killing the process")
+        #    self._send_timer.cancel()
+
+        #self._send_timer = threading.Timer(self._async_time,self._send_to_api)
+        #self._send_timer.start()
+        threading.Thread(target=self._send_to_api,
+                         daemon=True,
+                         name="_send_to_api").start()
+    
+    
+
+    def _send_to_api(self):
+        #with self._lock:
+        payload = self.json_data.copy()
+
+        ip_address = self.get_settings().get("ip_address")
+        url = f"http://{ip_address}:9123/elgato/lights"
+        try:
+            r = requests.put(url, json=payload, timeout=10)
+        except:
+            print(f"[Error]: Couldnt Sent update, request_body={payload}")
+
+    def _get_from_api(self):
+        ip_address = self.get_settings().get("ip_address")
+        url = f"http://{ip_address}:9123/elgato/lights"
+        try:
+            r = requests.get(url,timeout=10)
+            self.json_data = r.json()
+            print(f"[LOG]: Information retrieved, request_body={self.json_data}")
+        except:
+            print(f"[Error]: Couldnt Sent update, request_body={self.json_data}")
+        #with self._lock:
+
+
+
 
     @property
     def running_requests(self):
@@ -73,7 +146,7 @@ class Core(ActionBase):
 
     @property
     def current_brightness(self):
-        return self.get_light_data()["brightness"] or self.supported_lights["ElgatoKeyLight"]["min_brightness"]
+        return self.json_data["lights"][0]["brightness"]
 
     @current_brightness.setter
     def current_brightness(self, value):

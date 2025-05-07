@@ -41,7 +41,7 @@ class Dial(Core):
 
     def get_config_rows(self) -> list:
         parent_entries = super().get_config_rows()
-
+    
         self.toggle_property_selection = Gtk.StringList()
         self.toggle_property_selection.append(
             self.plugin_base.locale_manager.get("actions.toggle_selection.light_on_off"))
@@ -117,11 +117,9 @@ class Dial(Core):
 
         is_brightness = self.current_dial_selection == DialProperty.Brightness.value
         if is_brightness:
-            self.modify_brightness(new_value)
+            self.set_property("brightness",new_value)
         else:
-            self.modify_temperature(new_value)
-
-        self.update_labels()
+            self.set_property("temperature",new_value)
 
     def toggle_brightness_temperature(self):
         if self.current_dial_selection == DialProperty.Brightness.value:
@@ -144,6 +142,6 @@ class Dial(Core):
 
     def on_key_down(self) -> None:
         if self.current_toggle_selection == ToggleProperty.ToggleLightOnOff.value:
-            self.toggle_light()
+            self.set_property("on",None)
         else:
             self.toggle_brightness_temperature()
