@@ -138,7 +138,8 @@ class Dial(Core):
         else:
             self.set_top_label(text=self.plugin_base.locale_manager.get(
                 "actions.current_temperature.title"))
-            self.set_bottom_label(text=str(self.current_temperature))
+            self.set_bottom_label(text=self.plugin_base.locale_manager.get(
+                "actions.current_temperature.value") % int(self.current_k_temperature))
 
     def on_key_down(self) -> None:
         if self.current_toggle_selection == ToggleProperty.ToggleLightOnOff.value:

@@ -12,6 +12,7 @@
   "actions.current_brightness.title": "Brightness",
   "actions.current_brightness.value": "%s %%",
   "actions.current_temperature.title": "Temperature",
+  "actions.current_temperature.value": "%s K",
   "actions.toggle_selection.title": "On press",
   "actions.toggle_selection.light_on_off": "Toggle Light",
   "actions.toggle_selection.brightness_temperature": "Change Brightness/Temperature",

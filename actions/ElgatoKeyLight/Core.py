@@ -31,6 +31,8 @@ class Core(ActionBase):
                 "max_brightness": 100,
                 "min_temperature": 143,
                 "max_temperature": 344,
+                "min_k_temperature": 2900,
+                "max_k_temperature": 7000,
             }
         }
 
@@ -125,6 +127,13 @@ class Core(ActionBase):
     @property
     def current_temperature(self):
         return self.json_data["lights"][0]["temperature"]
+
+    @property
+    def current_k_temperature(self):
+        real_min, real_max = self.supported_lights["ElgatoKeyLight"]["min_temperature"],self.supported_lights["ElgatoKeyLight"]["max_temperature"]
+        shown_min, shown_max =  self.supported_lights["ElgatoKeyLight"]["min_k_temperature"],self.supported_lights["ElgatoKeyLight"]["max_k_temperature"]
+        real_value = self.current_temperature
+        return ((real_value - real_min) / (real_max - real_min)) * (shown_max - shown_min) + shown_min
 
     def on_ready(self) -> None:
         self.load_default_config()
