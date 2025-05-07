@@ -54,43 +54,29 @@ class Core(ActionBase):
         self._last_request_number = 0
         self._running_requests = 0
         
-        self._lock = threading.Lock()
-        self._send_timer = None
-        self._async_time = 0.15 #150 Ms
     def set_property(self, key, value):
-        #with self._lock:
-        
         match key:
             case "brightness":
                 self.plugin_base.backend.on_brightness_changed.emit()
-                self.json_data["lights"][0][key] = int(self.json_data["lights"][0][key] or 0) + value
+                self.json_data["lights"][0][key] = max(1, min(self.current_brightness + value, 100))
 
             case "temperature":
                 self.plugin_base.backend.on_temperature_changed.emit()
-                self.json_data["lights"][0][key] = int(self.json_data["lights"][0][key] or 0) + value
+                self.json_data["lights"][0][key] = max(143, min(self.current_temperature + value, 344))
 
             case "on":
-                self.json_data["lights"][0][key] = 1 - int(self.json_data["lights"][0][key])
+                self.json_data["lights"][0][key] = 1 - self.current_status
             case _:
                 print("No actions passed")
 
         self._async_send()
     
     def _async_send(self):
-        #if self._send_timer:
-        #    print("We killing the process")
-        #    self._send_timer.cancel()
-
-        #self._send_timer = threading.Timer(self._async_time,self._send_to_api)
-        #self._send_timer.start()
         threading.Thread(target=self._send_to_api,
                          daemon=True,
                          name="_send_to_api").start()
-    
-    
 
     def _send_to_api(self):
-        #with self._lock:
         payload = self.json_data.copy()
 
         ip_address = self.get_settings().get("ip_address")
@@ -109,10 +95,6 @@ class Core(ActionBase):
             print(f"[LOG]: Information retrieved, request_body={self.json_data}")
         except:
             print(f"[Error]: Couldnt Sent update, request_body={self.json_data}")
-        #with self._lock:
-
-
-
 
     @property
     def running_requests(self):
@@ -134,45 +116,15 @@ class Core(ActionBase):
 
     @property
     def current_status(self):
-        return self.get_light_data()["on"] or 0
-
-    @current_status.setter
-    def current_status(self, value):
-        self.plugin_base.backend.on_light_state_changed.emit()
-        threading.Thread(target=self.update_light,
-                         args=(int(value),None,None,),
-                         daemon=True,
-                         name="update_light").start()
+        return self.json_data["lights"][0]["on"]
 
     @property
     def current_brightness(self):
         return self.json_data["lights"][0]["brightness"]
 
-    @current_brightness.setter
-    def current_brightness(self, value):
-        _current_brightness = max(self.supported_lights["ElgatoKeyLight"]["min_brightness"], min(
-            value, self.supported_lights["ElgatoKeyLight"]["max_brightness"]))
-
-        self.plugin_base.backend.on_brightness_changed.emit()
-        threading.Thread(target=self.update_light, 
-                         args=(None,int(_current_brightness),None,),
-                         daemon=True,
-                         name="update_light").start()
-
     @property
     def current_temperature(self):
-        return self.get_light_data()["temperature"] or self.supported_lights["ElgatoKeyLight"]["min_temperature"]
-
-    @current_temperature.setter
-    def current_temperature(self, value):
-        _current_temperature = max(self.supported_lights["ElgatoKeyLight"]["min_temperature"], min(
-            value, self.supported_lights["ElgatoKeyLight"]["max_temperature"]))
-
-        self.plugin_base.backend.on_temperature_changed.emit()
-        threading.Thread(target=self.update_light,
-                         args=(None,None,int(_current_temperature),),
-                         daemon=True,
-                         name="update_light").start()
+        return self.json_data["lights"][0]["temperature"]
 
     def on_ready(self) -> None:
         self.load_default_config()
