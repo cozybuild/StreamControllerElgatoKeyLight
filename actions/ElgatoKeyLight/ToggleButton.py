@@ -6,4 +6,4 @@ class ToggleButton(Core):
         super().__init__(*args, **kwargs)
 
     def on_key_down(self) -> None:
-        self.toggle_light()
+        self.set_property("on",None)
