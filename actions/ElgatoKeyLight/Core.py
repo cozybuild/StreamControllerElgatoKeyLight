@@ -86,6 +86,7 @@ class Core(ActionBase):
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.put(url, json=payload, timeout=10)
+            self.update_icon()
         except:
             print(f"[Error]: Couldnt Sent update, request_body={payload}")
 
@@ -288,8 +289,7 @@ class Core(ActionBase):
         #                 name="update_light").start()
 
     def update_icon(self):
-        settings = self.plugin_base.get_settings()
-        if settings.get("light_active") == 1:
+        if self.current_status == 1:
             icon_path = os.path.join(
                 self.plugin_base.PATH, "assets", "ring_light_on.png")
         else:
