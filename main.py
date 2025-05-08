@@ -62,7 +62,7 @@ class PluginTemplate(PluginBase):
         # Register plugin
         self.register(
             plugin_name = "Elgato Key Light",
-            github_repo = "https://github.com/StreamController/PluginTemplate",
+            github_repo = "https://github.com/cozybuild/StreamControllerElgatoKeyLight/",
             plugin_version = "0.3.0",
             app_version = "1.1.1-alpha"
         )
