@@ -15,6 +15,9 @@ gi.require_version("Adw", "1")
 
 
 class Core(ActionBase):
+
+    data = {}
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lm = self.plugin_base.locale_manager
@@ -47,8 +50,6 @@ class Core(ActionBase):
             ]
         }
 
-        self._get_from_api()
-
         self.banner_is_visible = False
 
         self._is_connected = False
@@ -60,14 +61,15 @@ class Core(ActionBase):
         match key:
             case "brightness":
                 self.plugin_base.backend.on_brightness_changed.emit()
-                self.json_data["lights"][0][key] = max(1, min(self.current_brightness + value, 100))
+                #self.json_data["lights"][0][key] = max(1, min(self.current_brightness + value, 100))
+                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = max(1, min(Core.data[self.get_settings().get("ip_address")]["lights"][0][key] + value, 100))
 
             case "temperature":
                 self.plugin_base.backend.on_temperature_changed.emit()
-                self.json_data["lights"][0][key] = max(143, min(self.current_temperature + value, 344))
-
+                #self.json_data["lights"][0][key] = max(143, min(self.current_temperature + value, 344))
+                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = max(143, min(Core.data[self.get_settings().get("ip_address")]["lights"][0][key] + value, 344))
             case "on":
-                self.json_data["lights"][0][key] = 1 - self.current_status
+                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = 1 - Core.data[self.get_settings().get("ip_address")]["lights"][0][key]
             case _:
                 print("No actions passed")
 
@@ -79,24 +81,33 @@ class Core(ActionBase):
                          name="_send_to_api").start()
 
     def _send_to_api(self):
-        payload = self.json_data.copy()
-
         ip_address = self.get_settings().get("ip_address")
+        payload = Core.data[ip_address].copy()
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.put(url, json=payload, timeout=10)
         except:
             print(f"[Error]: Couldnt Sent update, request_body={payload}")
 
-    def _get_from_api(self):
-        ip_address = self.get_settings().get("ip_address")
-        url = f"http://{ip_address}:9123/elgato/lights"
+    def _get_from_api(self,ip):
+        url = f"http://{ip}:9123/elgato/lights"
         try:
             r = requests.get(url,timeout=10)
-            self.json_data = r.json()
-            print(f"[LOG]: Information retrieved, request_body={self.json_data}")
+            return r.json()
         except:
-            print(f"[Error]: Couldnt Sent update, request_body={self.json_data}")
+            print("[Error]: Couldnt Sent update")
+            return None
+
+    def _add_data_dictonary(self, ip):
+        if ip in Core.data:
+            return 0
+        data_from_api = self._get_from_api(ip)
+        Core.data[ip] = data_from_api
+    
+    def _get_data_dictonary(self, ip):
+        if ip not in Core.data:
+            return {}
+        return data[ip]
 
     @property
     def running_requests(self):
@@ -118,15 +129,28 @@ class Core(ActionBase):
 
     @property
     def current_status(self):
-        return self.json_data["lights"][0]["on"]
+        ip = self.get_settings().get("ip_address")
+        if ip not in Core.data:
+            self._add_data_dictonary(ip)
+        cur_status = Core.data[ip]["lights"][0]["on"]
+        return cur_status or 0
 
     @property
     def current_brightness(self):
-        return self.json_data["lights"][0]["brightness"]
+        ip = self.get_settings().get("ip_address")
+        if ip not in Core.data:
+            self._add_data_dictonary(ip)
+
+        cur_status = Core.data[ip]["lights"][0]["brightness"]
+        return cur_status or 1
 
     @property
     def current_temperature(self):
-        return self.json_data["lights"][0]["temperature"]
+        ip = self.get_settings().get("ip_address")
+        if ip not in Core.data:
+            self._add_data_dictonary(ip)
+        cur_status = Core.data[ip]["lights"][0]["temperature"]
+        return cur_status or 143
 
     @property
     def current_k_temperature(self):
@@ -220,6 +244,7 @@ class Core(ActionBase):
             self.set_settings(settings)
 
         saved_ip_address = settings.get("ip_address")
+        
 
         if saved_ip_address:
             print("Saved ip address in config ", saved_ip_address)
@@ -256,8 +281,11 @@ class Core(ActionBase):
         self.ip_address = ip_by_index
 
         self.set_settings(settings)
-        threading.Thread(target=self.update_light, daemon=True,
-                         name="update_light").start()
+
+        self._add_data_dictonary(ip_by_index)
+
+        #threading.Thread(target=self.update_light, daemon=True,
+        #                 name="update_light").start()
 
     def update_icon(self):
         settings = self.plugin_base.get_settings()
