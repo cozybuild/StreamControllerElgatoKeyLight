@@ -62,12 +62,12 @@ class Core(ActionBase):
             case "brightness":
                 self.plugin_base.backend.on_brightness_changed.emit()
                 #self.json_data["lights"][0][key] = max(1, min(self.current_brightness + value, 100))
-                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = max(1, min(Core.data[self.get_settings().get("ip_address")]["lights"][0][key] + value, 100))
+                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = value
 
             case "temperature":
                 self.plugin_base.backend.on_temperature_changed.emit()
                 #self.json_data["lights"][0][key] = max(143, min(self.current_temperature + value, 344))
-                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = max(143, min(Core.data[self.get_settings().get("ip_address")]["lights"][0][key] + value, 344))
+                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = value
             case "on":
                 Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = 1 - Core.data[self.get_settings().get("ip_address")]["lights"][0][key]
             case _:
