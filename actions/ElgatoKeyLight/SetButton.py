@@ -102,11 +102,9 @@ class SetButton(Core):
         self.push_light_properties()
 
     def push_light_properties(self):
-        settings = self.plugin_base.get_settings()
+        self.set_property("brightness",self.custom_brightness)
+        self.set_property("temperature",self.custom_temperature)
 
-        self.current_brightness = self.custom_brightness
-        self.current_temperature = self.custom_temperature
-
-        if settings.get("light_active") == 0:
-            self.toggle_light()
+        if self.current_status == 0:
+            self.set_property("on",None)
             return
