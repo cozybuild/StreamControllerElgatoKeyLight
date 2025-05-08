@@ -120,6 +120,8 @@ class Dial(Core):
             self.set_property("brightness",new_value)
         else:
             self.set_property("temperature",new_value)
+        
+        self.update_labels()
 
     def toggle_brightness_temperature(self):
         if self.current_dial_selection == DialProperty.Brightness.value:
