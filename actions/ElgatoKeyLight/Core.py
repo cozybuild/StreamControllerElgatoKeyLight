@@ -86,7 +86,9 @@ class Core(ActionBase):
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.put(url, json=payload, timeout=10)
-            self.update_icon()
+            #self.update_icon()
+            self.plugin_base.backend.on_light_state_changed.emit()
+
         except:
             print(f"[Error]: Couldnt Sent update, request_body={payload}")
 
@@ -296,6 +298,7 @@ class Core(ActionBase):
             icon_path = os.path.join(
                 self.plugin_base.PATH, "assets", "ring_light_off.png")
         self.set_media(media_path=icon_path, size=0.75)
+
 
     # TODO: Fetch data from light (singleton)
 
