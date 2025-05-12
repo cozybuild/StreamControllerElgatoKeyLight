@@ -158,7 +158,7 @@ class Core(ActionBase):
     @property
     def current_k_temperature(self):
         real_min, real_max = self.supported_lights["ElgatoKeyLight"]["min_temperature"],self.supported_lights["ElgatoKeyLight"]["max_temperature"]
-        shown_min, shown_max =  self.supported_lights["ElgatoKeyLight"]["min_k_temperature"],self.supported_lights["ElgatoKeyLight"]["max_k_temperature"]
+        shown_min, shown_max =  self.supported_lights["ElgatoKeyLight"]["max_k_temperature"],self.supported_lights["ElgatoKeyLight"]["min_k_temperature"]
         real_value = self.current_temperature
         return ((real_value - real_min) / (real_max - real_min)) * (shown_max - shown_min) + shown_min
 
