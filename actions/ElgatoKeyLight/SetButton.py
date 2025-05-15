@@ -1,10 +1,10 @@
+from gi.repository import Adw
 from .Core import Core
 
 # Import gtk modules - used for the config rows
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw
 
 
 class SetButton(Core):
@@ -14,8 +14,10 @@ class SetButton(Core):
     def on_ready(self) -> None:
         local_settings = self.get_settings()
 
-        self._custom_brightness = local_settings.get("custom_brightness") or self.supported_lights["ElgatoKeyLight"]["min_brightness"]
-        self._custom_temperature = local_settings.get("custom_temperature") or self.supported_lights["ElgatoKeyLight"]["min_temperature"]
+        self._custom_brightness = local_settings.get(
+            "custom_brightness") or self.supported_lights["ElgatoKeyLight"]["min_brightness"]
+        self._custom_temperature = local_settings.get(
+            "custom_temperature") or self.supported_lights["ElgatoKeyLight"]["min_temperature"]
         self._live_update = local_settings.get("live_update") or False
 
         self.update_icon()
@@ -61,16 +63,22 @@ class SetButton(Core):
         self.live_update.set_active(self.live_update_active)
         self.live_update.connect("notify::active", self.on_live_update_changed)
 
-        self.brightness_entry = Adw.SpinRow.new_with_range(self.supported_lights["ElgatoKeyLight"]["min_brightness"], self.supported_lights["ElgatoKeyLight"]["max_brightness"], 1)
-        self.brightness_entry.set_title(self.plugin_base.locale_manager.get("actions.brightness_entry.title"))
+        self.brightness_entry = Adw.SpinRow.new_with_range(
+            self.supported_lights["ElgatoKeyLight"]["min_brightness"], self.supported_lights["ElgatoKeyLight"]["max_brightness"], 1)
+        self.brightness_entry.set_title(
+            self.plugin_base.locale_manager.get("actions.brightness_entry.title"))
         self.brightness_entry.set_value(self.custom_brightness)
 
-        self.temperature_entry = Adw.SpinRow.new_with_range(self.supported_lights["ElgatoKeyLight"]["min_temperature"], self.supported_lights["ElgatoKeyLight"]["max_temperature"], 1)
-        self.temperature_entry.set_title(self.plugin_base.locale_manager.get("actions.brightness_entry.title"))
+        self.temperature_entry = Adw.SpinRow.new_with_range(
+            self.supported_lights["ElgatoKeyLight"]["min_temperature"], self.supported_lights["ElgatoKeyLight"]["max_temperature"], 1)
+        self.temperature_entry.set_title(
+            self.plugin_base.locale_manager.get("actions.brightness_entry.title"))
         self.temperature_entry.set_value(self.custom_temperature)
 
-        self.brightness_entry.connect("notify::value", self.on_brightness_changed)
-        self.temperature_entry.connect("notify::value", self.on_temperature_changed)
+        self.brightness_entry.connect(
+            "notify::value", self.on_brightness_changed)
+        self.temperature_entry.connect(
+            "notify::value", self.on_temperature_changed)
         return parent_entries + [self.live_update, self.brightness_entry, self.temperature_entry]
 
     def on_live_update_changed(self, switch: Adw.SwitchRow, *args):
@@ -94,11 +102,9 @@ class SetButton(Core):
         self.push_light_properties()
 
     def push_light_properties(self):
-        settings = self.plugin_base.get_settings()
+        self.set_property("brightness",self.custom_brightness)
+        self.set_property("temperature",self.custom_temperature)
 
-        self.current_brightness = self.custom_brightness
-        self.current_temperature = self.custom_temperature
-
-        if settings.get("light_active") == 0:
-            self.toggle_light()
+        if self.current_status == 0:
+            self.set_property("on",None)
             return
