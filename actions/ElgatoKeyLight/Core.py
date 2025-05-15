@@ -104,8 +104,8 @@ class Core(ActionBase):
     def _add_data_dictonary(self, ip):
         if ip in Core.data:
             return 0
-        data_from_api = self._get_from_api(ip)
-        Core.data[ip] = data_from_api
+        Core.data[ip] = self._get_from_api(ip)
+        return None
     
     def _get_data_dictonary(self, ip):
         if ip not in Core.data:
@@ -141,7 +141,7 @@ class Core(ActionBase):
     @property
     def current_brightness(self):
         ip = self.get_settings().get("ip_address")
-        if ip not in Core.data:
+        if ip not in Core.data :
             self._add_data_dictonary(ip)
 
         cur_status = Core.data[ip]["lights"][0]["brightness"]
@@ -254,13 +254,13 @@ class Core(ActionBase):
 
             self.plugin_base.backend.register_new_device(
                 saved_ip_address, saved_ip_address)
-            self.preselect_device_by_ip()
+            self.preselect_device_by_ip(saved_ip_address)
             self.ip_address = saved_ip_address
 
-    def preselect_device_by_ip(self):
+    def preselect_device_by_ip(self,ip):
         base_devices = self.plugin_base.backend.get_devices()
         for index, key in enumerate(base_devices):
-            if base_devices[key].ip_address == ip_address:
+            if base_devices[key].ip_address == ip:
                 self.device_list.set_selected(index)
                 break
 

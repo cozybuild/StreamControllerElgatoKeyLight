@@ -77,6 +77,6 @@ class IncreaseDecreaseButton(Core):
         new_value = +self.selected_step_size
         is_brightness = self.current_dial_selection == AvailableProperty.Brightness.value
         if is_brightness:
-            self.set_property("brightness",new_value)
+            self.set_property("brightness",max(1, min(self.current_brightness + new_value, 100)))
         else:
-            self.set_property("temperature",new_value)
+            self.set_property("temperature",max(143, min(self.current_temperature + new_value, 344)))
