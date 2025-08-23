@@ -5,6 +5,7 @@ import os
 import gi
 import threading
 import time
+import json
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -70,7 +71,11 @@ class Core(ActionBase):
 
         self.plugin_base.set_settings(settings)
         self.plugin_base.backend.on_brightness_changed.emit()
-        threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
+
+        data = self.get_light_data()
+        data["lights"][0]["brightness"] = value
+
+        threading.Thread(target=self.update_light, args=[data], daemon=True, name="update_light").start()
 
     @property
     def current_temperature(self):
@@ -87,7 +92,11 @@ class Core(ActionBase):
 
         self.plugin_base.set_settings(settings)
         self.plugin_base.backend.on_temperature_changed.emit()
-        threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
+
+        data = self.get_light_data()
+        data["lights"][0]["temperature"] = value
+
+        threading.Thread(target=self.update_light, args=[data], daemon=True, name="update_light").start()
 
     def on_ready(self) -> None:
         self.update_icon()
@@ -117,25 +126,26 @@ class Core(ActionBase):
 
     def modify_brightness(self, amount: int):
         settings = self.plugin_base.get_settings()
-        new_brightness = int(settings.get("brightness") or 0) + amount
+        data = self.get_light_data()
+        new_brightness = data["lights"][0]["brightness"] + amount
         self.current_brightness = new_brightness
 
     def modify_temperature(self, amount: int):
         settings = self.plugin_base.get_settings()
-        new_temperature = int(settings.get("temperature") or 0) + amount
+        data = self.get_light_data()
+        new_temperature = data["lights"][0]["temperature"] + amount
         self.current_temperature = new_temperature
 
     def toggle_light(self):
         settings = self.plugin_base.get_settings()
+        data = self.get_light_data()
 
-        if settings.get("light_active") == 0:
-            settings["light_active"] = 1
-        else:
-            settings["light_active"] = 0
+        data["lights"][0]["on"] ^= 1
+        settings["light_active"] = data["lights"][0]["on"] 
 
         self.plugin_base.set_settings(settings)
         self.plugin_base.backend.on_light_state_changed.emit()
-        self.update_light()
+        self.update_light(data)
 
     def load_default_config(self):
         settings = self.plugin_base.get_settings()
@@ -148,7 +158,6 @@ class Core(ActionBase):
         settings = self.plugin_base.get_settings()
         settings["ip_address"] = entry.get_text()
         self.plugin_base.set_settings(settings)
-        threading.Thread(target=self.update_light, daemon=True, name="update_light").start()
 
     def update_icon(self):
         settings = self.plugin_base.get_settings()
@@ -159,31 +168,21 @@ class Core(ActionBase):
         self.set_media(media_path=icon_path, size=0.75)
 
 
-    # TODO: Fetch data from light (singleton)
     def get_light_data(self):
-        url = ""
+        settings = self.plugin_base.get_settings()
+        ip_address = settings.get("ip_address")
+        url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
-            return r.text
+            return json.loads(r.text)
         except:
             return "Failed to get lights"
 
 
-    def update_light(self):
+    def update_light(self, data):
         settings = self.plugin_base.get_settings()
         ip_address = settings.get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
-
-        data = {
-        "numberOfLights": 1,
-        "lights": [
-                {
-                    "on": settings.get("light_active"),
-                    "brightness": self.current_brightness,
-                    "temperature": self.current_temperature
-                }
-            ]
-        }
 
         request_number = self._last_request_number + 1
         self.running_requests += 1
