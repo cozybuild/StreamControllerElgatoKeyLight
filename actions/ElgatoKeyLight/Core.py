@@ -5,7 +5,6 @@ import os
 import gi
 import threading
 import time
-import json
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -174,7 +173,7 @@ class Core(ActionBase):
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
-            return json.loads(r.text)
+            return r.json()
         except:
             return "Failed to get lights"
 
