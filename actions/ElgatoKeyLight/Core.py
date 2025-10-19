@@ -22,10 +22,8 @@ class Core(ActionBase):
         super().__init__(*args, **kwargs)
         self.lm = self.plugin_base.locale_manager
 
-        self.plugin_base.backend.on_light_state_changed.subscribe(
-            self.update_icon)
-        self.plugin_base.backend.on_device_added.subscribe(
-            self.update_device_list)
+        self.plugin_base.backend.on_light_state_changed.subscribe(self.update_icon)
+        self.plugin_base.backend.on_device_added.subscribe(self.update_device_list)
 
         self.supported_lights = {
             "ElgatoKeyLight": {
@@ -39,63 +37,76 @@ class Core(ActionBase):
             }
         }
 
-        self.json_data = {
-            "numberOfLights": 1,
-            "lights": [
-                {
-                    "on": 0,
-                    "brightness": 1,
-                    "temperature": 143
-                }
-            ]
-        }
-
         self.banner_is_visible = False
 
         self._is_connected = False
         self._connection_error = ""
         self._last_request_number = 0
         self._running_requests = 0
-        
+
     def set_property(self, key, value):
+        ip_address = self.get_settings().get("ip_address")
+
+        if not ip_address:
+            print("[Error]: No IP address configured")
+            return
+
+        if ip_address not in Core.data:
+            self._add_data_dictonary(ip_address)
+
+        if ip_address not in Core.data or Core.data[ip_address] is None:
+            print(f"[Error]: Failed to get data for {ip_address}")
+            return
+
         match key:
             case "brightness":
                 self.plugin_base.backend.on_brightness_changed.emit()
-                #self.json_data["lights"][0][key] = max(1, min(self.current_brightness + value, 100))
-                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = value
+                Core.data[ip_address]["lights"][0][key] = value
 
             case "temperature":
                 self.plugin_base.backend.on_temperature_changed.emit()
-                #self.json_data["lights"][0][key] = max(143, min(self.current_temperature + value, 344))
-                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = value
+                Core.data[ip_address]["lights"][0][key] = value
             case "on":
-                Core.data[self.get_settings().get("ip_address")]["lights"][0][key] = 1 - Core.data[self.get_settings().get("ip_address")]["lights"][0][key]
+                Core.data[ip_address]["lights"][0][key] = (
+                    1 - Core.data[ip_address]["lights"][0][key]
+                )
             case _:
                 print("No actions passed")
 
         self._async_send()
-    
+
     def _async_send(self):
-        threading.Thread(target=self._send_to_api,
-                         daemon=True,
-                         name="_send_to_api").start()
+        threading.Thread(
+            target=self._send_to_api, daemon=True, name="_send_to_api"
+        ).start()
 
     def _send_to_api(self):
         ip_address = self.get_settings().get("ip_address")
+
+        if not ip_address:
+            print("[Error]: No IP address configured")
+            return
+
+        if ip_address not in Core.data or Core.data[ip_address] is None:
+            print(f"[Error]: No data available for {ip_address}")
+            return
+
         payload = Core.data[ip_address].copy()
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.put(url, json=payload, timeout=10)
-            #self.update_icon()
+            # self.update_icon()
             self.plugin_base.backend.on_light_state_changed.emit()
 
-        except:
-            print(f"[Error]: Couldnt Sent update, request_body={payload}")
+        except Exception as e:
+            print(
+                f"[Error]: Couldn't send update to {ip_address}, request_body={payload}, error={e}"
+            )
 
-    def _get_from_api(self,ip):
+    def _get_from_api(self, ip):
         url = f"http://{ip}:9123/elgato/lights"
         try:
-            r = requests.get(url,timeout=10)
+            r = requests.get(url, timeout=10)
             return r.json()
         except:
             print("[Error]: Couldnt Sent update")
@@ -106,11 +117,11 @@ class Core(ActionBase):
             return 0
         Core.data[ip] = self._get_from_api(ip)
         return None
-    
+
     def _get_data_dictonary(self, ip):
         if ip not in Core.data:
             return {}
-        return data[ip]
+        return Core.data[ip]
 
     @property
     def running_requests(self):
@@ -133,34 +144,53 @@ class Core(ActionBase):
     @property
     def current_status(self):
         ip = self.get_settings().get("ip_address")
+        if not ip:
+            return 0
         if ip not in Core.data:
             self._add_data_dictonary(ip)
+        if ip not in Core.data or Core.data[ip] is None:
+            return 0
         cur_status = Core.data[ip]["lights"][0]["on"]
         return cur_status or 0
 
     @property
     def current_brightness(self):
         ip = self.get_settings().get("ip_address")
-        if ip not in Core.data :
+        if not ip:
+            return 1
+        if ip not in Core.data:
             self._add_data_dictonary(ip)
-
+        if ip not in Core.data or Core.data[ip] is None:
+            return 1
         cur_status = Core.data[ip]["lights"][0]["brightness"]
         return cur_status or 1
 
     @property
     def current_temperature(self):
         ip = self.get_settings().get("ip_address")
+        if not ip:
+            return 143
         if ip not in Core.data:
             self._add_data_dictonary(ip)
+        if ip not in Core.data or Core.data[ip] is None:
+            return 143
         cur_status = Core.data[ip]["lights"][0]["temperature"]
         return cur_status or 143
 
     @property
     def current_k_temperature(self):
-        real_min, real_max = self.supported_lights["ElgatoKeyLight"]["min_temperature"],self.supported_lights["ElgatoKeyLight"]["max_temperature"]
-        shown_min, shown_max =  self.supported_lights["ElgatoKeyLight"]["max_k_temperature"],self.supported_lights["ElgatoKeyLight"]["min_k_temperature"]
+        real_min, real_max = (
+            self.supported_lights["ElgatoKeyLight"]["min_temperature"],
+            self.supported_lights["ElgatoKeyLight"]["max_temperature"],
+        )
+        shown_min, shown_max = (
+            self.supported_lights["ElgatoKeyLight"]["max_k_temperature"],
+            self.supported_lights["ElgatoKeyLight"]["min_k_temperature"],
+        )
         real_value = self.current_temperature
-        return ((real_value - real_min) / (real_max - real_min)) * (shown_max - shown_min) + shown_min
+        return ((real_value - real_min) / (real_max - real_min)) * (
+            shown_max - shown_min
+        ) + shown_min
 
     def on_ready(self) -> None:
         self.load_default_config()
@@ -171,16 +201,18 @@ class Core(ActionBase):
             return
 
         print(self.registered_devices)
-        self.registered_devices.splice(
-            0, self.registered_devices.get_n_items())
+        self.registered_devices.splice(0, self.registered_devices.get_n_items())
         for device in self.plugin_base.backend.get_devices():
             self.registered_devices.append(str(device))
 
     def get_config_rows(self) -> list:
-        self.add_new_ip_entry = Adw.EntryRow(title=self.plugin_base.locale_manager.get(
-            "actions.add_ip_entry.title"), input_purpose=Gtk.InputPurpose.FREE_FORM)
+        self.add_new_ip_entry = Adw.EntryRow(
+            title=self.plugin_base.locale_manager.get("actions.add_ip_entry.title"),
+            input_purpose=Gtk.InputPurpose.FREE_FORM,
+        )
         self.add_light_button = Adw.ButtonRow(
-            title=self.plugin_base.locale_manager.get("actions.add_light_button.title"))
+            title=self.plugin_base.locale_manager.get("actions.add_light_button.title")
+        )
 
         # Disable button until we have a working connection
         self.add_light_button
@@ -191,8 +223,10 @@ class Core(ActionBase):
         for device in self.plugin_base.backend.get_devices():
             self.registered_devices.append(str(device))
 
-        self.device_list = Adw.ComboRow(title=self.plugin_base.locale_manager.get(
-            "actions.device_list.title"), model=self.registered_devices)
+        self.device_list = Adw.ComboRow(
+            title=self.plugin_base.locale_manager.get("actions.device_list.title"),
+            model=self.registered_devices,
+        )
         self.device_list.connect("notify::selected", self.set_ip_address)
 
         self.connection_banner = Adw.Banner()
@@ -202,7 +236,12 @@ class Core(ActionBase):
 
         self.load_default_config()
 
-        return [self.add_new_ip_entry, self.add_light_button, self.device_list, self.connection_banner]
+        return [
+            self.add_new_ip_entry,
+            self.add_light_button,
+            self.device_list,
+            self.connection_banner,
+        ]
 
     def set_banner_connection_info(self) -> None:
         if not self.banner_is_visible:
@@ -210,32 +249,28 @@ class Core(ActionBase):
 
         if self.running_requests > 0:
             self.connection_banner.set_title(
-                self.plugin_base.locale_manager.get("actions.connection_banner.loading"))
+                self.plugin_base.locale_manager.get("actions.connection_banner.loading")
+            )
         elif self.is_connected:
             self.connection_banner.set_title(
-                self.plugin_base.locale_manager.get("actions.connection_banner.connected"))
+                self.plugin_base.locale_manager.get(
+                    "actions.connection_banner.connected"
+                )
+            )
         else:
-            self.connection_banner.set_title(self.plugin_base.locale_manager.get(
-                "actions.connection_banner.not_connected"))
-
-    def modify_brightness(self, amount: int):
-        new_brightness = int(self.get_light_data()["brightness"] or 0) + amount
-        self.current_brightness = new_brightness
-
-    def modify_temperature(self, amount: int):
-        new_temperature = int(self.get_light_data()["temperature"] or 0) + amount
-        self.current_temperature = new_temperature
+            self.connection_banner.set_title(
+                self.plugin_base.locale_manager.get(
+                    "actions.connection_banner.not_connected"
+                )
+            )
 
     def toggle_light(self):
-        status = self.get_light_data()["on"]
-        status = 1 - status
-        self.current_status = status
+        self.set_property("on", None)
 
     def load_default_config(self):
         # Fallback for old global settings
         global_settings = self.plugin_base.get_settings()
-        migrate_global_address_to_local_address = global_settings.get(
-            "ip_address")
+        migrate_global_address_to_local_address = global_settings.get("ip_address")
 
         settings = self.get_settings()
 
@@ -247,17 +282,19 @@ class Core(ActionBase):
             self.set_settings(settings)
 
         saved_ip_address = settings.get("ip_address")
-        
 
         if saved_ip_address:
             print("Saved ip address in config ", saved_ip_address)
 
             self.plugin_base.backend.register_new_device(
-                saved_ip_address, saved_ip_address)
+                saved_ip_address, saved_ip_address
+            )
             self.preselect_device_by_ip(saved_ip_address)
             self.ip_address = saved_ip_address
 
-    def preselect_device_by_ip(self,ip):
+    def preselect_device_by_ip(self, ip):
+        if not hasattr(self, "device_list"):
+            return
         base_devices = self.plugin_base.backend.get_devices()
         for index, key in enumerate(base_devices):
             if base_devices[key].ip_address == ip:
@@ -267,17 +304,23 @@ class Core(ActionBase):
     def on_ip_address_added(self, entry):
         new_ip_address = self.add_new_ip_entry.get_text()
 
-        self.plugin_base.backend.register_new_device(
-            new_ip_address, new_ip_address)
-        self.device_list.set_selected(
-            self.registered_devices.get_n_items() - 1)
+        # Validate IP address
+        try:
+            ip_address(new_ip_address)
+        except ValueError:
+            print(f"[Error]: Invalid IP address: {new_ip_address}")
+            return
+
+        self.plugin_base.backend.register_new_device(new_ip_address, new_ip_address)
+        self.device_list.set_selected(self.registered_devices.get_n_items() - 1)
         self.set_ip_address(self.device_list)
 
     def set_ip_address(self, entry: Adw.EntryRow, *args):
         settings = self.get_settings()
 
         ip_by_index = list(self.plugin_base.backend.get_devices().values())[
-            entry.get_selected()].ip_address
+            entry.get_selected()
+        ].ip_address
 
         settings["ip_address"] = ip_by_index
 
@@ -287,18 +330,19 @@ class Core(ActionBase):
 
         self._add_data_dictonary(ip_by_index)
 
-        #threading.Thread(target=self.update_light, daemon=True,
+        # threading.Thread(target=self.update_light, daemon=True,
         #                 name="update_light").start()
 
     def update_icon(self):
         if self.current_status == 1:
             icon_path = os.path.join(
-                self.plugin_base.PATH, "assets", "ring_light_on.png")
+                self.plugin_base.PATH, "assets", "ring_light_on.png"
+            )
         else:
             icon_path = os.path.join(
-                self.plugin_base.PATH, "assets", "ring_light_off.png")
+                self.plugin_base.PATH, "assets", "ring_light_off.png"
+            )
         self.set_media(media_path=icon_path, size=0.75)
-
 
     # TODO: Fetch data from light (singleton)
 
@@ -307,11 +351,11 @@ class Core(ActionBase):
         url = f"http://{ip_address}:9123/elgato/lights"
         try:
             r = requests.get(url)
-            return json.loads(r.text)["lights"][0] 
+            return json.loads(r.text)["lights"][0]
         except:
             return "Failed to get lights"
 
-    def update_light(self,_is_light_active,_brightness,_temperature):
+    def update_light(self, _is_light_active, _brightness, _temperature):
 
         ip_address = self.get_settings().get("ip_address")
         url = f"http://{ip_address}:9123/elgato/lights"
@@ -323,11 +367,11 @@ class Core(ActionBase):
             "numberOfLights": 1,
             "lights": [
                 {
-                    "on": _is_light_active, 
+                    "on": _is_light_active,
                     "brightness": _brightness or self.current_brightness,
-                    "temperature": _temperature or self.current_temperature
+                    "temperature": _temperature or self.current_temperature,
                 }
-            ]
+            ],
         }
 
         request_number = self._last_request_number + 1
