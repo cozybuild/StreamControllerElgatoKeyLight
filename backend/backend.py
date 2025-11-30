@@ -1,5 +1,6 @@
 from streamcontroller_plugin_tools import BackendBase
 
+
 class Event:
     def __init__(self):
         self.listeners = []
@@ -29,8 +30,7 @@ class Backend(BackendBase):
         self.on_light_state_changed = Event()
         self.on_device_added = Event()
 
-        self.devices : dict[str, Device] = {}
-
+        self.devices: dict[str, Device] = {}
 
     def register_new_device(self, device_ip: str, device_name: str):
         print("Registering new device: ", device_ip)
@@ -41,17 +41,15 @@ class Backend(BackendBase):
         self.devices[device_ip] = Device(device_ip, device_name)
         self.on_device_added.emit()
 
-
     def remove_device(self, device_ip: str):
         del self.devices[device_ip]
         self.on_device_removed.emit(device_ip)
 
-
     def get_devices(self) -> dict[str, Device]:
         return self.devices
 
-
     def is_device_in_list(self, device_ip: str) -> bool:
         return device_ip in self.devices
+
 
 backend = Backend()

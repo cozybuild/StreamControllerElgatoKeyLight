@@ -6,7 +6,7 @@ class ToggleButton(Core):
         super().__init__(*args, **kwargs)
 
     def on_key_down(self) -> None:
-        self.set_property("on",None)
+        self.set_property("on", None)
 
     def on_ready(self):
         self.update_icon()
