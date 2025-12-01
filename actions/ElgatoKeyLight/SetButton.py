@@ -66,7 +66,7 @@ class SetButton(Core):
         self.brightness_entry.set_value(self.custom_brightness)
 
         self.temperature_entry = Adw.SpinRow.new_with_range(self.supported_lights["ElgatoKeyLight"]["min_temperature"], self.supported_lights["ElgatoKeyLight"]["max_temperature"], 1)
-        self.temperature_entry.set_title(self.plugin_base.locale_manager.get("actions.brightness_entry.title"))
+        self.temperature_entry.set_title(self.plugin_base.locale_manager.get("actions.temperature_entry.title"))
         self.temperature_entry.set_value(self.custom_temperature)
 
         self.brightness_entry.connect("notify::value", self.on_brightness_changed)
